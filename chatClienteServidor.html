@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>CHATito</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+        <link rel="stylesheet" href="css/chat.css" />
+		<script src="js/jquery.min.js"></script>
+		<script src="js/skel.min.js"></script>
+		<script src="js/skel-layers.min.js"></script>
+        <script src="js/init.js"></script>
+        <!-- FIREBASE -->
+        <script src="https://www.gstatic.com/firebasejs/4.12.0/firebase.js"></script>
+        <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyBZN2oywwTAJSxRWURHBM579ybn0Cep9WQ",
+            authDomain: "api-project-da70f.firebaseapp.com",
+            databaseURL: "https://api-project-da70f.firebaseio.com",
+            projectId: "api-project-da70f",
+            storageBucket: "api-project-da70f.appspot.com",
+            messagingSenderId: "77329790117"
+        };
+        firebase.initializeApp(config);
+        </script>
+		<noscript>
+			<link rel="stylesheet" href="css/skel.css" />
+			<link rel="stylesheet" href="css/style.css" />
+			<link rel="stylesheet" href="css/style-xlarge.css" />
+		</noscript>
+        <style>
+            .botonchat {
+                position: fixed;
+                bottom: 70px;
+                width: 20%;
+                height: 100%;
+            }
+        </style>
+	</head>
+	<body>
+
+		<!-- Header -->
+		<header id="header">
+			<h1><a target="_blank" href="#">Plataformas de TI 3</a></h1>
+			<nav id="nav">
+				<ul>
+					<li><a href="index.html">Principal</a></li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<section id="main" class="wrapper">
+            <div id="message_box"></div>
+				<section id="chateo" name="chateo">
+                    <ol id="charla" class="discussion">
+                    </ol>
+                    <!-- Buttons -->
+                    <div class="footer-app">
+                        <input class="chat" type="text" id="txtMensaje" value="" placeholder="Mensaje">&nbsp;&nbsp;
+                        <a id="btnEnviar" class="icon fa-paper-plane"></a>&nbsp;&nbsp;
+                    </div>
+                </section>
+		</section>
+	</body>
+</html>
+<script>
+
+    $(function() {
+
+        var newItems = false;
+
+        if(localStorage.nickname=='undefined' || localStorage.nickname==undefined || localStorage.nickname=='')
+        {
+            alert("Debe loggearse primero!");
+            window.location = "loginClienteServidor.html";
+        }
+        else
+        {
+            document.getElementById("txtMensaje").focus();
+            
+            obtenerMensajes();    
+            scrollDown();
+
+
+            firebase.database().ref('/chatito/').on("child_added", function(snapshot) {
+
+                if (!newItems) return;
+
+                var msg = snapshot.val();
+                var umsg = msg.message; //message text
+                var uname = msg.name; //user name
+
+                if(!(uname=='undefined' || uname==undefined))
+                {
+                    txtAppend="";
+                    if(uname==localStorage.nickname)
+                        txtAppend += "<li class='self'>";
+                    else
+                        txtAppend += "<li class='other'>";
+
+                    txtAppend += "	<div class='avatar'>";
+                    if(uname==localStorage.nickname)
+                        txtAppend += "			<img src='images/chat-jugador-red.png'>";
+                    else
+                        txtAppend += "			<img src='images/chat-jugador-blue.png'>";
+
+                    
+                    txtAppend += "	</div>";
+                    txtAppend += "	<div class='messages'>";
+                    txtAppend += "			<p>"+umsg+"</p>";
+                    txtAppend += "			<time>"+uname+"</time>";
+                    txtAppend += "	</div>";
+                    txtAppend += "</li>";
+                    $("#charla").append(txtAppend);
+                    scrollDown();
+                }     
+            
+            });
+
+            firebase.database().ref('/chatito/').once('value', function(messages) {
+                newItems = true;
+            });
+        }
+    });
+
+    function obtenerMensajes()
+    {
+        // OBTIENE TODOS LOS MENSAJES YA ESCRITOS
+        var varURL="http://chatito.diegobertolini.com/API/chatClienteServidor_mensaje_obtiene.php";
+        var varParams = {"paramSistema":"1"};
+        $.ajax({
+            type: "POST",
+            url: varURL,
+            data: varParams,
+            async:false,
+            dataType: "json",
+            success: function(data) 
+            {
+                if(data.retorno=="NULL") 
+                {
+                    // $("#charla").append("" +
+                    // "<li>No hay ningún chat aún.</li>"
+                    // );					
+                }
+                else 
+                {
+                    var txtAppend="";
+                    for(var i in data)
+                    {
+                        txtAppend="";
+                        // SELF
+                        if(data[i].nickname == localStorage.getItem('nickname'))
+                        {
+                            
+                            txtAppend += "<li class='self'>";
+                            txtAppend += 	"<div class='avatar'>";
+                            txtAppend += 		"<img src='images/chat-jugador-red.png'>";
+                            txtAppend += 	"</div>";
+                            txtAppend += 	"<div class='messages'>";
+                            txtAppend += 		"<p>"+data[i].mensaje+"</p>";
+                            txtAppend += 		"<time>"+data[i].nickname+"</time>";
+                            txtAppend += 	"</div>";
+                            txtAppend += "</li>";
+                        }
+                        // OTHER
+                        else
+                        {
+                            txtAppend += "<li class='other'>";
+                            txtAppend += "	<div class='avatar'>";
+                            txtAppend += "			<img src='images/chat-jugador-blue.png'>";
+                            txtAppend += "	</div>";
+                            txtAppend += "	<div class='messages'>";
+                            txtAppend += "			<p>"+data[i].mensaje+"</p>";
+                            txtAppend += "			<time>"+data[i].nickname+"</time>";
+                            txtAppend += "	</div>";
+                            txtAppend += "</li>";
+                        }
+
+                        $("#charla").append(txtAppend);	
+                    }
+                }
+            },
+            error: function(data) 
+            {		
+                //console.log(data);	
+                alert(JSON.stringify(data));			
+                alert("Hubo un error al obtener los chats.");
+                window.location = "loginClienteServidor.html";
+            }	
+        });
+    }
+    
+    function scrollDown(){
+        var $target = $('html,body'); 
+        $target.animate({scrollTop: $target.height()}, 1);
+
+        var objDiv = document.getElementById("message_box");
+        objDiv.scrollTop = objDiv.scrollHeight;
+    }
+
+    // Cuando presiona la tecla ENTER
+    $('#txtMensaje').on('keypress', function (e) 
+    {
+        if(e.which === 13)
+        {
+            enviaMensaje();
+        }
+    });
+
+    function enviaMensaje()
+    {
+        if($("#txtMensaje").val()=="")
+        {
+            alert("No hay texto para enviar.");
+        }
+        else
+        {
+            nickname = localStorage.nickname;
+            mensaje = document.getElementById("txtMensaje").value;
+            var varURL="http://chatito.diegobertolini.com/API/chatClienteServidor_mensaje_envia.php";
+            var varParams = {"paramNickname":nickname, "paramMensaje":mensaje};
+            $.post(varURL,
+                varParams,
+                function(data) {
+                    $("#txtMensaje").val("");
+                    
+                    //prepare json data
+                    var msg = {
+                        message: mensaje,
+                        name: nickname
+                    };
+
+                    firebase.database().ref().child('/chatito/').push(msg);
+                }
+            );
+
+            
+        }
+    }
+            
+	// BOTON ENVIAR
+	$("#btnEnviar").click(function() {
+        enviaMensaje();
+	});
+    
+    // BOTON SALIR
+	$("#btnSalir").click(function() {
+        window.location = "salir.html";
+	});
+
+</script>
